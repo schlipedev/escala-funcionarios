@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Plus, Copy } from "lucide-react"
 import type { Employee, Location, Shift } from "@/lib/types"
 import { WEEKDAY_LABELS, formatDayNumber, formatTime, formatWeekRange, toISODate } from "@/lib/dates"
@@ -30,6 +30,10 @@ export function SchedulerGrid({
   const today = toISODate(new Date())
   const [draggedShiftId, setDraggedShiftId] = useState<string | null>(null)
   const [dragOverDate, setDragOverDate] = useState<string | null>(null)
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null)
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null)
+  const draggedShiftRef = useRef<Shift | null>(null)
+  const suppressClickRef = useRef(false)
 
   function toMinutes(time: string): number {
     const [hours, minutes] = time.split(":").map(Number)
@@ -58,14 +62,49 @@ export function SchedulerGrid({
       .sort((a, b) => a.start_time.localeCompare(b.start_time))
   }
 
-  function handleDrop(date: string) {
-    if (!draggedShiftId) return
-    const shift = shifts.find((item) => item.id === draggedShiftId)
-    if (shift && shift.shift_date !== date) {
-      onMoveShift(shift, date)
+  function updateDragOver(event: React.PointerEvent<HTMLDivElement>) {
+    const target = document.elementFromPoint(event.clientX, event.clientY)
+    const dropTarget = target?.closest("[data-drop-date]") as HTMLElement | null
+    setDragOverDate(dropTarget?.dataset.dropDate ?? null)
+  }
+
+  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>, shift: Shift) {
+    if (event.button !== 0) return
+
+    dragStartRef.current = { x: event.clientX, y: event.clientY }
+    draggedShiftRef.current = shift
+    suppressClickRef.current = false
+    setDraggedShiftId(shift.id)
+    setDragOffset(null)
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (!dragStartRef.current || !draggedShiftRef.current) return
+
+    const deltaX = event.clientX - dragStartRef.current.x
+    const deltaY = event.clientY - dragStartRef.current.y
+    if (Math.hypot(deltaX, deltaY) > 6) {
+      suppressClickRef.current = true
+      setDragOffset({ x: deltaX, y: deltaY })
     }
+    updateDragOver(event)
+  }
+
+  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
+    const shift = draggedShiftRef.current
+    const targetDate = dragOverDate
+
+    if (shift && targetDate && shift.shift_date !== targetDate) {
+      onMoveShift(shift, targetDate)
+    }
+
+    draggedShiftRef.current = null
+    dragStartRef.current = null
     setDraggedShiftId(null)
+    setDragOffset(null)
     setDragOverDate(null)
+    suppressClickRef.current = false
   }
 
   function renderDayCard(day: Date, index: number, iso: string, dayShifts: Shift[]) {
@@ -83,16 +122,7 @@ export function SchedulerGrid({
     return (
       <div
         key={iso}
-        onDragOver={(event) => {
-          event.preventDefault()
-          setDragOverDate(iso)
-        }}
-        onDragLeave={() => {
-          if (dragOverDate === iso) {
-            setDragOverDate(null)
-          }
-        }}
-        onDrop={() => handleDrop(iso)}
+        data-drop-date={iso}
         className={`flex flex-col rounded-xl border bg-card transition-colors ${dragOverDate === iso ? "border-primary shadow-sm" : "border-border"}`}
       >
         <div className="flex items-center justify-between rounded-t-xl bg-secondary px-3 py-2 text-secondary-foreground">
@@ -130,19 +160,26 @@ export function SchedulerGrid({
               return (
                 <div
                   key={shift.id}
-                  draggable
-                  onDragStart={() => setDraggedShiftId(shift.id)}
-                  onDragEnd={() => {
-                    setDraggedShiftId(null)
-                    setDragOverDate(null)
-                  }}
-                  className={`group relative rounded-lg border-l-4 bg-secondary/60 p-2 text-left shadow-sm ${
+                  onPointerDown={(event) => handlePointerDown(event, shift)}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
+                  className={`group relative rounded-lg border-l-4 bg-secondary/60 p-2 text-left shadow-sm touch-none ${
                     conflictIds.has(shift.id) ? "ring-1 ring-destructive/40" : ""
                   } ${draggedShiftId === shift.id ? "opacity-70" : ""}`}
-                  style={{ borderLeftColor: color }}
+                  style={{
+                    borderLeftColor: color,
+                    transform: draggedShiftId === shift.id && dragOffset ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : undefined,
+                    zIndex: draggedShiftId === shift.id ? 50 : undefined,
+                  }}
                 >
                   <button
-                    onClick={() => onEditShift(shift)}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      if (!suppressClickRef.current) {
+                        onEditShift(shift)
+                      }
+                    }}
                     className="block w-full text-left"
                     aria-label={`Editar turno de ${emp?.name ?? "funcionário"}`}
                   >
@@ -159,7 +196,10 @@ export function SchedulerGrid({
                     ) : null}
                   </button>
                   <button
-                    onClick={() => onDuplicateShift(shift)}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onDuplicateShift(shift)
+                    }}
                     aria-label="Duplicar turno"
                     className="absolute right-1 top-1 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-foreground/10 hover:text-foreground group-hover:opacity-100"
                   >
@@ -174,14 +214,15 @@ export function SchedulerGrid({
     )
   }
 
-  const mobileDay = weekDays.find((day) => toISODate(day) === today) ?? weekDays[0]
-  const mobileIso = toISODate(mobileDay)
-  const mobileShifts = shiftsForDay(mobileIso)
+  const mobileWeekDays = weekDays.slice(0, 7)
 
   return (
     <div className="overflow-hidden">
       <div className="space-y-3 md:hidden">
-        {renderDayCard(mobileDay, weekDays.findIndex((day) => toISODate(day) === mobileIso), mobileIso, mobileShifts)}
+        {mobileWeekDays.map((day, index) => {
+          const iso = toISODate(day)
+          return renderDayCard(day, index, iso, shiftsForDay(iso))
+        })}
       </div>
 
       <div className="hidden md:block">
