@@ -152,17 +152,23 @@ export function SchedulerGrid({
       </div>
 
       <div className="hidden md:block">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-muted-foreground">Esta semana</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
-            {weekDays.map((day, i) => {
-              const iso = toISODate(day)
-              const dayShifts = shiftsForDay(iso)
-              return renderDayCard(day, i, iso, dayShifts)
-            })}
-          </div>
+        <div className="flex flex-col gap-6">
+          {[weekDays.slice(0, 7), weekDays.slice(7)].map((weekGroup, groupIndex) => (
+            <div key={groupIndex} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">
+                  {groupIndex === 0 ? "Esta semana" : "Próxima semana"}
+                </p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
+                {weekGroup.map((day, i) => {
+                  const iso = toISODate(day)
+                  const dayShifts = shiftsForDay(iso)
+                  return renderDayCard(day, i, iso, dayShifts)
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
