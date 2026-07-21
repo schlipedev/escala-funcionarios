@@ -37,6 +37,7 @@ export function SchedulerGrid({
   const dragOverDateRef = useRef<string | null>(null)
   const suppressClickRef = useRef(false)
   const didDragRef = useRef(false)
+  const dragResetTimeoutRef = useRef<number | null>(null)
 
   function toMinutes(time: string): number {
     const [hours, minutes] = time.split(":").map(Number)
@@ -117,8 +118,15 @@ export function SchedulerGrid({
       setDraggedShiftId(null)
       setDragOffset(null)
       setDragOverDate(null)
-      suppressClickRef.current = false
-      didDragRef.current = false
+
+      if (dragResetTimeoutRef.current) {
+        window.clearTimeout(dragResetTimeoutRef.current)
+      }
+      dragResetTimeoutRef.current = window.setTimeout(() => {
+        suppressClickRef.current = false
+        didDragRef.current = false
+        dragResetTimeoutRef.current = null
+      }, 0)
     }
 
     window.addEventListener("pointermove", handlePointerMove)
@@ -186,6 +194,12 @@ export function SchedulerGrid({
                 <div
                   key={shift.id}
                   onPointerDown={(event) => handlePointerDown(event, shift)}
+                  onClickCapture={(event) => {
+                    if (suppressClickRef.current || didDragRef.current) {
+                      event.preventDefault()
+                      event.stopPropagation()
+                    }
+                  }}
                   className={`group relative rounded-lg border-l-4 bg-secondary/60 p-2 text-left shadow-sm touch-none ${
                     conflictIds.has(shift.id) ? "ring-1 ring-destructive/40" : ""
                   } ${draggedShiftId === shift.id ? "opacity-70 ring-2 ring-primary/50" : ""}`}
