@@ -35,12 +35,8 @@ export default function Page() {
   const [defaultDate, setDefaultDate] = useState<string | undefined>(undefined)
   const [manageOpen, setManageOpen] = useState(false)
 
-  const weekDays = useMemo(() => {
-    const firstWeek = getWeekDays(weekStart)
-    const secondWeek = getWeekDays(addWeeks(weekStart, 1))
-    return [...firstWeek, ...secondWeek]
-  }, [weekStart])
-  const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart])
+  const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart])
+  const weekEnd = useMemo(() => addDays(weekStart, 13), [weekStart])
   const selectedEmployee = employees.find((employee) => employee.id === selectedEmployeeId)
   const filteredShifts = useMemo(() => {
     let result = shifts
