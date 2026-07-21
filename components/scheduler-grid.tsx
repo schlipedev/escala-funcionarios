@@ -141,10 +141,12 @@ export function SchedulerGrid({
     )
   }
 
+  const mobileWeekDays = weekDays.slice(0, 7)
+
   return (
     <div className="overflow-hidden">
       <div className="space-y-3 md:hidden">
-        {weekDays.map((day, i) => {
+        {mobileWeekDays.map((day, i) => {
           const iso = toISODate(day)
           const dayShifts = shiftsForDay(iso)
           return renderDayCard(day, i, iso, dayShifts)
