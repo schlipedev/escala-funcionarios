@@ -12,6 +12,11 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+
+const QUICK_TIME_OPTIONS = [
+  { label: "Turno Manhã", start: "08:00", end: "16:00" },
+  { label: "Turno Tarde", start: "12:00", end: "20:00" },
+]
 import {
   Select,
   SelectContent,
@@ -57,6 +62,7 @@ export function ShiftDialog({
   const [notes, setNotes] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [createAnother, setCreateAnother] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -103,6 +109,18 @@ export function ShiftDialog({
     setSaving(true)
     try {
       await onSave(input, shift?.id)
+      if (createAnother && !shift) {
+        setEmployeeId(employees[0]?.id ?? "")
+        setLocationId(locations[0]?.id ?? "none")
+        setDate(defaultDate ?? toISODate(new Date()))
+        setStartTime("08:00")
+        setEndTime("16:00")
+        setNotes("")
+        setDisplayEmployeeName(employees[0]?.name ?? "Selecione")
+        setDisplayLocationName(locations[0]?.name ?? "Sem local")
+        setError(null)
+        return
+      }
       onOpenChange(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Erro ao salvar.")
@@ -180,6 +198,26 @@ export function ShiftDialog({
             <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
 
+          <div className="grid gap-2">
+            <Label>Horários rápidos</Label>
+            <div className="flex flex-wrap gap-2">
+              {QUICK_TIME_OPTIONS.map((option) => (
+                <Button
+                  key={option.label}
+                  type="button"
+                  variant={startTime === option.start && endTime === option.end ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setStartTime(option.start)
+                    setEndTime(option.end)
+                  }}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div className="grid gap-2">
               <Label htmlFor="start">Início</Label>
@@ -189,6 +227,16 @@ export function ShiftDialog({
               <Label htmlFor="end">Fim</Label>
               <Input id="end" type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
             </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-lg border border-border p-2">
+            <input
+              type="checkbox"
+              id="createAnother"
+              checked={createAnother}
+              onChange={(e) => setCreateAnother(e.target.checked)}
+            />
+            <Label htmlFor="createAnother" className="cursor-pointer">Criar outro turno</Label>
           </div>
 
           <div className="grid gap-2">
