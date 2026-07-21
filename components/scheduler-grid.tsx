@@ -2,7 +2,7 @@
 
 import { Plus, Copy } from "lucide-react"
 import type { Employee, Location, Shift } from "@/lib/types"
-import { WEEKDAY_LABELS, formatDayNumber, formatTime, toISODate } from "@/lib/dates"
+import { WEEKDAY_LABELS, formatDayNumber, formatTime, formatWeekRange, toISODate } from "@/lib/dates"
 
 interface SchedulerGridProps {
   weekDays: Date[]
@@ -158,9 +158,12 @@ export function SchedulerGrid({
           {[weekDays.slice(0, 7), weekDays.slice(7)].map((weekGroup, groupIndex) => (
             <div key={groupIndex} className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">
-                  {groupIndex === 0 ? "Esta semana" : "Próxima semana"}
-                </p>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {groupIndex === 0 ? "Esta semana" : "Próxima semana"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{formatWeekRange(weekGroup[0])}</p>
+                </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
                 {weekGroup.map((day, i) => {

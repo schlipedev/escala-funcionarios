@@ -29,6 +29,7 @@ export default function Page() {
   const [selectedLocationId, setSelectedLocationId] = useState<string>("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isDesktop, setIsDesktop] = useState(false)
 
   const [shiftDialogOpen, setShiftDialogOpen] = useState(false)
   const [editingShift, setEditingShift] = useState<Shift | null>(null)
@@ -41,6 +42,24 @@ export default function Page() {
     return [...firstWeek, ...secondWeek]
   }, [weekStart])
   const weekEnd = useMemo(() => addDays(weekStart, 13), [weekStart])
+  const secondWeekStart = useMemo(() => addWeeks(weekStart, 1), [weekStart])
+  const secondWeekLabel = useMemo(() => formatWeekRange(secondWeekStart), [secondWeekStart])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const updateViewport = () => setIsDesktop(window.innerWidth >= 768)
+    updateViewport()
+    window.addEventListener("resize", updateViewport)
+    return () => window.removeEventListener("resize", updateViewport)
+  }, [])
+
+  const navigateWeek = useCallback(
+    (direction: -1 | 1) => {
+      const step = isDesktop ? 2 : 1
+      setWeekStart((prev) => addWeeks(prev, direction * step))
+    },
+    [isDesktop],
+  )
   const selectedEmployee = employees.find((employee) => employee.id === selectedEmployeeId)
   const filteredShifts = useMemo(() => {
     let result = shifts
@@ -203,10 +222,10 @@ export default function Page() {
       <main className="mx-auto max-w-7xl px-4 py-6">
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setWeekStart((p) => addWeeks(p, -1))} aria-label="Semana anterior">
+            <Button variant="outline" size="icon" onClick={() => navigateWeek(-1)} aria-label="Semana anterior">
               <ChevronLeft className="size-4" />
             </Button>
-            <Button variant="outline" size="icon" onClick={() => setWeekStart((p) => addWeeks(p, 1))} aria-label="Próxima semana">
+            <Button variant="outline" size="icon" onClick={() => navigateWeek(1)} aria-label="Próxima semana">
               <ChevronRight className="size-4" />
             </Button>
             <Button
@@ -248,7 +267,10 @@ export default function Page() {
               </SelectContent>
             </Select>
           </div>
-          <p className="text-sm font-medium text-foreground sm:text-base">{formatWeekRange(weekStart)}</p>
+          <div className="flex flex-col items-start sm:items-end">
+            <p className="text-sm font-medium text-foreground sm:text-base">{formatWeekRange(weekStart)}</p>
+            <p className="text-xs text-muted-foreground">{secondWeekLabel}</p>
+          </div>
         </div>
 
         {error ? (
