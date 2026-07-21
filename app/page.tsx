@@ -132,6 +132,26 @@ export default function Page() {
     toast.success("Turno excluído.")
   }
 
+  async function handleMoveShift(shift: Shift, newDate: string) {
+    if (shift.shift_date === newDate) return
+
+    try {
+      const updated = await api.updateShift(shift.id, {
+        employee_id: shift.employee_id,
+        location_id: shift.location_id,
+        shift_date: newDate,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+        notes: shift.notes,
+      })
+
+      setShifts((prev) => prev.map((item) => (item.id === shift.id ? updated : item)))
+      toast.success("Turno movido.")
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao mover turno.")
+    }
+  }
+
   async function handleDuplicateShift(shift: Shift) {
     try {
       const [created] = await api.duplicateWeek([shift], 0)
@@ -300,6 +320,7 @@ export default function Page() {
             onAddShift={openNewShift}
             onEditShift={openEditShift}
             onDuplicateShift={handleDuplicateShift}
+            onMoveShift={handleMoveShift}
           />
         )}
       </main>

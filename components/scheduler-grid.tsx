@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Plus, Copy } from "lucide-react"
 import type { Employee, Location, Shift } from "@/lib/types"
 import { WEEKDAY_LABELS, formatDayNumber, formatTime, formatWeekRange, toISODate } from "@/lib/dates"
@@ -12,6 +13,7 @@ interface SchedulerGridProps {
   onAddShift: (date: string) => void
   onEditShift: (shift: Shift) => void
   onDuplicateShift: (shift: Shift) => void
+  onMoveShift: (shift: Shift, newDate: string) => void
 }
 
 export function SchedulerGrid({
@@ -26,6 +28,8 @@ export function SchedulerGrid({
   const locationById = new Map(locations.map((l) => [l.id, l]))
   const employeeById = new Map(employees.map((e) => [e.id, e]))
   const today = toISODate(new Date())
+  const [draggedShiftId, setDraggedShiftId] = useState<string | null>(null)
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null)
 
   function toMinutes(time: string): number {
     const [hours, minutes] = time.split(":").map(Number)
@@ -54,6 +58,16 @@ export function SchedulerGrid({
       .sort((a, b) => a.start_time.localeCompare(b.start_time))
   }
 
+  function handleDrop(date: string) {
+    if (!draggedShiftId) return
+    const shift = shifts.find((item) => item.id === draggedShiftId)
+    if (shift && shift.shift_date !== date) {
+      onMoveShift(shift, date)
+    }
+    setDraggedShiftId(null)
+    setDragOverDate(null)
+  }
+
   function renderDayCard(day: Date, index: number, iso: string, dayShifts: Shift[]) {
     const conflictIds = new Set<string>()
     dayShifts.forEach((shift, shiftIndex) => {
@@ -67,7 +81,20 @@ export function SchedulerGrid({
     const hasConflicts = conflictIds.size > 0
     const summaryLabel = `${dayShifts.length} turno${dayShifts.length === 1 ? "" : "s"}${hasConflicts ? ` • ${conflictIds.size} conflito${conflictIds.size === 1 ? "" : "s"}` : ""}`
     return (
-      <div key={iso} className="flex flex-col rounded-xl border border-border bg-card">
+      <div
+        key={iso}
+        onDragOver={(event) => {
+          event.preventDefault()
+          setDragOverDate(iso)
+        }}
+        onDragLeave={() => {
+          if (dragOverDate === iso) {
+            setDragOverDate(null)
+          }
+        }}
+        onDrop={() => handleDrop(iso)}
+        className={`flex flex-col rounded-xl border bg-card transition-colors ${dragOverDate === iso ? "border-primary shadow-sm" : "border-border"}`}
+      >
         <div className="flex items-center justify-between rounded-t-xl bg-secondary px-3 py-2 text-secondary-foreground">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide opacity-80">
@@ -103,9 +130,15 @@ export function SchedulerGrid({
               return (
                 <div
                   key={shift.id}
+                  draggable
+                  onDragStart={() => setDraggedShiftId(shift.id)}
+                  onDragEnd={() => {
+                    setDraggedShiftId(null)
+                    setDragOverDate(null)
+                  }}
                   className={`group relative rounded-lg border-l-4 bg-secondary/60 p-2 text-left shadow-sm ${
                     conflictIds.has(shift.id) ? "ring-1 ring-destructive/40" : ""
-                  }`}
+                  } ${draggedShiftId === shift.id ? "opacity-70" : ""}`}
                   style={{ borderLeftColor: color }}
                 >
                   <button
@@ -141,16 +174,14 @@ export function SchedulerGrid({
     )
   }
 
-  const mobileWeekDays = weekDays.slice(0, 7)
+  const mobileDay = weekDays.find((day) => toISODate(day) === today) ?? weekDays[0]
+  const mobileIso = toISODate(mobileDay)
+  const mobileShifts = shiftsForDay(mobileIso)
 
   return (
     <div className="overflow-hidden">
       <div className="space-y-3 md:hidden">
-        {mobileWeekDays.map((day, i) => {
-          const iso = toISODate(day)
-          const dayShifts = shiftsForDay(iso)
-          return renderDayCard(day, i, iso, dayShifts)
-        })}
+        {renderDayCard(mobileDay, weekDays.findIndex((day) => toISODate(day) === mobileIso), mobileIso, mobileShifts)}
       </div>
 
       <div className="hidden md:block">
