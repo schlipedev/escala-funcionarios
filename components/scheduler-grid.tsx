@@ -32,6 +32,7 @@ export function SchedulerGrid({
   const [draggedShiftId, setDraggedShiftId] = useState<string | null>(null)
   const [dragOverDate, setDragOverDate] = useState<string | null>(null)
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
   const dragStartRef = useRef<{ x: number; y: number } | null>(null)
   const draggedShiftRef = useRef<Shift | null>(null)
   const dragOverDateRef = useRef<string | null>(null)
@@ -82,6 +83,7 @@ export function SchedulerGrid({
     dragOverDateRef.current = null
     suppressClickRef.current = false
     didDragRef.current = false
+    setDragging(true)
     setDraggedShiftId(shift.id)
     setDragOffset(null)
     setDragOverDate(null)
@@ -115,6 +117,7 @@ export function SchedulerGrid({
       draggedShiftRef.current = null
       dragStartRef.current = null
       dragOverDateRef.current = null
+      setDragging(false)
       setDraggedShiftId(null)
       setDragOffset(null)
       setDragOverDate(null)
@@ -258,6 +261,9 @@ export function SchedulerGrid({
 
   return (
     <div className="overflow-hidden">
+      {dragging ? (
+        <div className="pointer-events-none fixed inset-0 z-40" />
+      ) : null}
       <div className="flex flex-col gap-3 overflow-y-auto pb-2 md:hidden">
         {mobileWeekDays.map((day, index) => {
           const iso = toISODate(day)
