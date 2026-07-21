@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button"
 import { SchedulerGrid } from "@/components/scheduler-grid"
 import { ShiftDialog } from "@/components/shift-dialog"
 import { ManageDialog } from "@/components/manage-dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { isSupabaseConfigured } from "@/lib/supabase"
 import * as api from "@/lib/api"
-import type { Employee, Location, Shift, ShiftInput } from "@/lib/types"
+import { WORK_LOCATIONS, type Employee, type Location, type Shift, type ShiftInput } from "@/lib/types"
 import {
   addDays,
   addWeeks,
@@ -21,9 +22,10 @@ import {
 
 export default function Page() {
   const [weekStart, setWeekStart] = useState<Date>(() => startOfWeek(new Date()))
-  const [locations, setLocations] = useState<Location[]>([])
+  const [locations, setLocations] = useState<Location[]>(WORK_LOCATIONS)
   const [employees, setEmployees] = useState<Employee[]>([])
   const [shifts, setShifts] = useState<Shift[]>([])
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,6 +36,10 @@ export default function Page() {
 
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart])
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart])
+  const filteredShifts = useMemo(() => {
+    if (selectedEmployeeId === "all") return shifts
+    return shifts.filter((shift) => shift.employee_id === selectedEmployeeId)
+  }, [selectedEmployeeId, shifts])
 
   const loadData = useCallback(async () => {
     if (!isSupabaseConfigured) {
@@ -44,12 +50,11 @@ export default function Page() {
     setLoading(true)
     setError(null)
     try {
-      const [locs, emps, shs] = await Promise.all([
-        api.fetchLocations(),
+      const [emps, shs] = await Promise.all([
         api.fetchEmployees(),
         api.fetchShifts(toISODate(weekStart), toISODate(weekEnd)),
       ])
-      setLocations(locs)
+      setLocations(WORK_LOCATIONS)
       setEmployees(emps)
       setShifts(shs)
     } catch (e) {
@@ -184,7 +189,7 @@ export default function Page() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6">
-        <div className="mb-6 flex items-center justify-between gap-4">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-2">
             <Button variant="outline" size="icon" onClick={() => setWeekStart((p) => addWeeks(p, -1))} aria-label="Semana anterior">
               <ChevronLeft className="size-4" />
@@ -201,6 +206,22 @@ export default function Page() {
               <RotateCcw className="size-3.5" />
               Hoje
             </Button>
+          </div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <label className="text-sm text-muted-foreground">Filtrar por funcionário</label>
+            <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os funcionários</SelectItem>
+                {employees.map((employee) => (
+                  <SelectItem key={employee.id} value={employee.id}>
+                    {employee.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <p className="text-sm font-medium text-foreground sm:text-base">{formatWeekRange(weekStart)}</p>
         </div>
@@ -228,7 +249,7 @@ export default function Page() {
             weekDays={weekDays}
             employees={employees}
             locations={locations}
-            shifts={shifts}
+            shifts={filteredShifts}
             onAddShift={openNewShift}
             onEditShift={openEditShift}
             onDuplicateShift={handleDuplicateShift}

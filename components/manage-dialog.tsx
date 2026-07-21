@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Pencil, Plus, Trash2, X, Check } from "lucide-react"
-import type { Employee, Location } from "@/lib/types"
+import { WORK_LOCATIONS, type Employee, type Location } from "@/lib/types"
 
 const COLOR_OPTIONS = [
   "#2563eb",
@@ -71,7 +71,7 @@ export function ManageDialog(props: ManageDialogProps) {
 
         <div className="max-h-[55vh] overflow-y-auto pr-1">
           {tab === "locations" ? (
-            <LocationsPanel {...props} />
+            <LocationsPanel />
           ) : (
             <EmployeesPanel {...props} />
           )}
@@ -81,97 +81,23 @@ export function ManageDialog(props: ManageDialogProps) {
   )
 }
 
-function LocationsPanel({
-  locations,
-  onCreateLocation,
-  onUpdateLocation,
-  onDeleteLocation,
-}: ManageDialogProps) {
-  const [name, setName] = useState("")
-  const [color, setColor] = useState(COLOR_OPTIONS[0])
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState("")
-  const [editColor, setEditColor] = useState(COLOR_OPTIONS[0])
-  const [busy, setBusy] = useState(false)
-
-  async function add() {
-    if (!name.trim()) return
-    setBusy(true)
-    try {
-      await onCreateLocation({ name: name.trim(), color })
-      setName("")
-      setColor(COLOR_OPTIONS[0])
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  function startEdit(l: Location) {
-    setEditingId(l.id)
-    setEditName(l.name)
-    setEditColor(l.color)
-  }
-
-  async function saveEdit(id: string) {
-    if (!editName.trim()) return
-    setBusy(true)
-    try {
-      await onUpdateLocation(id, { name: editName.trim(), color: editColor })
-      setEditingId(null)
-    } finally {
-      setBusy(false)
-    }
-  }
-
+function LocationsPanel() {
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-border p-3">
-        <Label className="mb-2 block">Novo local</Label>
-        <div className="flex gap-2">
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do local" />
-          <Button onClick={add} disabled={busy || !name.trim()} size="icon" aria-label="Adicionar local">
-            <Plus className="size-4" />
-          </Button>
-        </div>
-        <ColorPicker value={color} onChange={setColor} />
+        <p className="text-sm font-medium">Locais de trabalho fixos</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Os turnos só podem ser atribuídos a estes quatro locais.
+        </p>
       </div>
 
       <ul className="space-y-2">
-        {locations.map((l) => (
-          <li key={l.id} className="flex items-center gap-2 rounded-lg border border-border p-2">
-            {editingId === l.id ? (
-              <>
-                <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8" />
-                <ColorPicker value={editColor} onChange={setEditColor} compact />
-                <Button size="icon" variant="ghost" onClick={() => saveEdit(l.id)} aria-label="Salvar">
-                  <Check className="size-4" />
-                </Button>
-                <Button size="icon" variant="ghost" onClick={() => setEditingId(null)} aria-label="Cancelar">
-                  <X className="size-4" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <span className="size-4 shrink-0 rounded-full" style={{ backgroundColor: l.color }} />
-                <span className="flex-1 truncate text-sm">{l.name}</span>
-                <Button size="icon" variant="ghost" onClick={() => startEdit(l)} aria-label="Editar">
-                  <Pencil className="size-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => onDeleteLocation(l.id)}
-                  aria-label="Excluir"
-                >
-                  <Trash2 className="size-4 text-destructive" />
-                </Button>
-              </>
-            )}
+        {WORK_LOCATIONS.map((location) => (
+          <li key={location.id} className="flex items-center gap-2 rounded-lg border border-border p-2">
+            <span className="size-4 shrink-0 rounded-full" style={{ backgroundColor: location.color }} />
+            <span className="flex-1 truncate text-sm font-medium">{location.name}</span>
           </li>
         ))}
-        {locations.length === 0 ? (
-          <p className="py-4 text-center text-sm text-muted-foreground">Nenhum local cadastrado.</p>
-        ) : null}
       </ul>
     </div>
   )
