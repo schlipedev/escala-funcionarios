@@ -215,7 +215,7 @@ export default function Page() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
+         <header className="border-b border-border bg-card">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
@@ -223,7 +223,6 @@ export default function Page() {
             </div>
             <div>
               <h1 className="text-lg font-semibold leading-tight">Escala de Funcionários</h1>
-              <p className="text-sm text-muted-foreground">Planejamento semanal de turnos</p>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -233,7 +232,7 @@ export default function Page() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => setManageOpen(true)}>
               <Settings className="size-4" />
-              Gerenciar
+              Definições
             </Button>
           </div>
         </div>
