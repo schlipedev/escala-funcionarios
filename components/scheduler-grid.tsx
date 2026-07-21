@@ -24,6 +24,7 @@ export function SchedulerGrid({
   onAddShift,
   onEditShift,
   onDuplicateShift,
+  onMoveShift,
 }: SchedulerGridProps) {
   const locationById = new Map(locations.map((l) => [l.id, l]))
   const employeeById = new Map(employees.map((e) => [e.id, e]))
@@ -218,10 +219,14 @@ export function SchedulerGrid({
 
   return (
     <div className="overflow-hidden">
-      <div className="space-y-3 md:hidden">
+      <div className="flex gap-3 overflow-x-auto pb-2 md:hidden">
         {mobileWeekDays.map((day, index) => {
           const iso = toISODate(day)
-          return renderDayCard(day, index, iso, shiftsForDay(iso))
+          return (
+            <div key={iso} className="min-w-[88vw] flex-shrink-0">
+              {renderDayCard(day, index, iso, shiftsForDay(iso))}
+            </div>
+          )
         })}
       </div>
 
