@@ -151,8 +151,8 @@ export function SchedulerGrid({
         })}
       </div>
 
-      <div className="hidden gap-4 md:block">
-        <div className="grid gap-4 lg:grid-cols-2">
+      <div className="hidden md:block">
+        <div className="flex flex-col gap-6">
           {[weekDays.slice(0, 7), weekDays.slice(7)].map((weekGroup, groupIndex) => (
             <div key={groupIndex} className="space-y-3">
               <div className="flex items-center justify-between">
@@ -160,7 +160,7 @@ export function SchedulerGrid({
                   {groupIndex === 0 ? "Esta semana" : "Próxima semana"}
                 </p>
               </div>
-              <div className="grid gap-3 xl:grid-cols-7">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7">
                 {weekGroup.map((day, i) => {
                   const iso = toISODate(day)
                   const dayShifts = shiftsForDay(iso)
