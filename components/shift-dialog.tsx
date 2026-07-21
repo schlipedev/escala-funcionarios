@@ -48,6 +48,10 @@ export function ShiftDialog({
   const [employeeId, setEmployeeId] = useState("")
   const [locationId, setLocationId] = useState<string>("none")
   const [date, setDate] = useState("")
+  const selectedEmployee = employees.find((employee) => employee.id === employeeId)
+  const selectedLocation = locations.find((location) => location.id === locationId)
+  const [displayEmployeeName, setDisplayEmployeeName] = useState("Selecione")
+  const [displayLocationName, setDisplayLocationName] = useState("Sem local")
   const [startTime, setStartTime] = useState("08:00")
   const [endTime, setEndTime] = useState("16:00")
   const [notes, setNotes] = useState("")
@@ -63,6 +67,8 @@ export function ShiftDialog({
       setStartTime(shift.start_time.slice(0, 5))
       setEndTime(shift.end_time.slice(0, 5))
       setNotes(shift.notes ?? "")
+      setDisplayEmployeeName(employees.find((employee) => employee.id === shift.employee_id)?.name ?? "Selecione")
+      setDisplayLocationName(locations.find((location) => location.id === shift.location_id)?.name ?? "Sem local")
     } else {
       setEmployeeId(employees[0]?.id ?? "")
       setLocationId(locations[0]?.id ?? "none")
@@ -70,6 +76,8 @@ export function ShiftDialog({
       setStartTime("08:00")
       setEndTime("16:00")
       setNotes("")
+      setDisplayEmployeeName(employees[0]?.name ?? "Selecione")
+      setDisplayLocationName(locations[0]?.name ?? "Sem local")
     }
     setError(null)
   }, [open, shift, defaultDate, employees, locations])
@@ -82,10 +90,6 @@ export function ShiftDialog({
     }
     if (!date) {
       setError("Informe a data.")
-      return
-    }
-    if (startTime >= endTime) {
-      setError("O horário final deve ser após o inicial.")
       return
     }
     const input: ShiftInput = {
@@ -133,9 +137,12 @@ export function ShiftDialog({
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
             <Label htmlFor="employee">Funcionário</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
+            <Select value={employeeId} onValueChange={(value) => {
+              setEmployeeId(value)
+              setDisplayEmployeeName(employees.find((employee) => employee.id === value)?.name ?? "Selecione")
+            }}>
               <SelectTrigger id="employee">
-                <SelectValue placeholder="Selecione" />
+                <span>{displayEmployeeName}</span>
               </SelectTrigger>
               <SelectContent>
                 {employees.map((e) => (
@@ -150,9 +157,12 @@ export function ShiftDialog({
 
           <div className="grid gap-2">
             <Label htmlFor="location">Local</Label>
-            <Select value={locationId} onValueChange={setLocationId}>
+            <Select value={locationId} onValueChange={(value) => {
+              setLocationId(value)
+              setDisplayLocationName(locations.find((location) => location.id === value)?.name ?? (value === "none" ? "Sem local" : "Selecione"))
+            }}>
               <SelectTrigger id="location">
-                <SelectValue placeholder="Selecione" />
+                <span>{displayLocationName}</span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Sem local</SelectItem>
