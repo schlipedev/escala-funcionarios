@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Plus, Copy } from "lucide-react"
 import type { Employee, Location, Shift } from "@/lib/types"
 import { WEEKDAY_LABELS, formatDayNumber, formatTime, formatWeekRange, toISODate } from "@/lib/dates"
@@ -34,6 +34,7 @@ export function SchedulerGrid({
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null)
   const dragStartRef = useRef<{ x: number; y: number } | null>(null)
   const draggedShiftRef = useRef<Shift | null>(null)
+  const dragOverDateRef = useRef<string | null>(null)
   const suppressClickRef = useRef(false)
 
   function toMinutes(time: string): number {
@@ -63,10 +64,12 @@ export function SchedulerGrid({
       .sort((a, b) => a.start_time.localeCompare(b.start_time))
   }
 
-  function updateDragOver(event: React.PointerEvent<HTMLDivElement>) {
-    const target = document.elementFromPoint(event.clientX, event.clientY)
+  function updateDragOver(clientX: number, clientY: number) {
+    const target = document.elementFromPoint(clientX, clientY)
     const dropTarget = target?.closest("[data-drop-date]") as HTMLElement | null
-    setDragOverDate(dropTarget?.dataset.dropDate ?? null)
+    const nextDate = dropTarget?.dataset.dropDate ?? null
+    dragOverDateRef.current = nextDate
+    setDragOverDate(nextDate)
   }
 
   function handlePointerDown(event: React.PointerEvent<HTMLDivElement>, shift: Shift) {
@@ -74,39 +77,56 @@ export function SchedulerGrid({
 
     dragStartRef.current = { x: event.clientX, y: event.clientY }
     draggedShiftRef.current = shift
+    dragOverDateRef.current = null
     suppressClickRef.current = false
     setDraggedShiftId(shift.id)
     setDragOffset(null)
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-
-  function handlePointerMove(event: React.PointerEvent<HTMLDivElement>) {
-    if (!dragStartRef.current || !draggedShiftRef.current) return
-
-    const deltaX = event.clientX - dragStartRef.current.x
-    const deltaY = event.clientY - dragStartRef.current.y
-    if (Math.hypot(deltaX, deltaY) > 6) {
-      suppressClickRef.current = true
-      setDragOffset({ x: deltaX, y: deltaY })
-    }
-    updateDragOver(event)
-  }
-
-  function handlePointerUp(event: React.PointerEvent<HTMLDivElement>) {
-    const shift = draggedShiftRef.current
-    const targetDate = dragOverDate
-
-    if (shift && targetDate && shift.shift_date !== targetDate) {
-      onMoveShift(shift, targetDate)
-    }
-
-    draggedShiftRef.current = null
-    dragStartRef.current = null
-    setDraggedShiftId(null)
-    setDragOffset(null)
     setDragOverDate(null)
-    suppressClickRef.current = false
+    updateDragOver(event.clientX, event.clientY)
   }
+
+  useEffect(() => {
+    if (!draggedShiftId) return
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!dragStartRef.current || !draggedShiftRef.current) return
+
+      const deltaX = event.clientX - dragStartRef.current.x
+      const deltaY = event.clientY - dragStartRef.current.y
+      if (Math.hypot(deltaX, deltaY) > 6) {
+        suppressClickRef.current = true
+        setDragOffset({ x: deltaX, y: deltaY })
+      }
+      updateDragOver(event.clientX, event.clientY)
+    }
+
+    const handlePointerUp = () => {
+      const shift = draggedShiftRef.current
+      const targetDate = dragOverDateRef.current
+
+      if (shift && targetDate && shift.shift_date !== targetDate) {
+        onMoveShift(shift, targetDate)
+      }
+
+      draggedShiftRef.current = null
+      dragStartRef.current = null
+      dragOverDateRef.current = null
+      setDraggedShiftId(null)
+      setDragOffset(null)
+      setDragOverDate(null)
+      suppressClickRef.current = false
+    }
+
+    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointerup", handlePointerUp)
+    window.addEventListener("pointercancel", handlePointerUp)
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerup", handlePointerUp)
+      window.removeEventListener("pointercancel", handlePointerUp)
+    }
+  }, [draggedShiftId, onMoveShift])
 
   function renderDayCard(day: Date, index: number, iso: string, dayShifts: Shift[]) {
     const conflictIds = new Set<string>()
@@ -162,9 +182,6 @@ export function SchedulerGrid({
                 <div
                   key={shift.id}
                   onPointerDown={(event) => handlePointerDown(event, shift)}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onPointerCancel={handlePointerUp}
                   className={`group relative rounded-lg border-l-4 bg-secondary/60 p-2 text-left shadow-sm touch-none ${
                     conflictIds.has(shift.id) ? "ring-1 ring-destructive/40" : ""
                   } ${draggedShiftId === shift.id ? "opacity-70" : ""}`}
@@ -219,11 +236,11 @@ export function SchedulerGrid({
 
   return (
     <div className="overflow-hidden">
-      <div className="flex gap-3 overflow-x-auto pb-2 md:hidden">
+      <div className="flex flex-col gap-3 overflow-y-auto pb-2 md:hidden">
         {mobileWeekDays.map((day, index) => {
           const iso = toISODate(day)
           return (
-            <div key={iso} className="min-w-[88vw] flex-shrink-0">
+            <div key={iso} className="w-full">
               {renderDayCard(day, index, iso, shiftsForDay(iso))}
             </div>
           )
