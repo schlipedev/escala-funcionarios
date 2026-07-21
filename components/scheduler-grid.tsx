@@ -36,6 +36,7 @@ export function SchedulerGrid({
   const draggedShiftRef = useRef<Shift | null>(null)
   const dragOverDateRef = useRef<string | null>(null)
   const suppressClickRef = useRef(false)
+  const didDragRef = useRef(false)
 
   function toMinutes(time: string): number {
     const [hours, minutes] = time.split(":").map(Number)
@@ -79,6 +80,7 @@ export function SchedulerGrid({
     draggedShiftRef.current = shift
     dragOverDateRef.current = null
     suppressClickRef.current = false
+    didDragRef.current = false
     setDraggedShiftId(shift.id)
     setDragOffset(null)
     setDragOverDate(null)
@@ -94,6 +96,7 @@ export function SchedulerGrid({
       const deltaX = event.clientX - dragStartRef.current.x
       const deltaY = event.clientY - dragStartRef.current.y
       if (Math.hypot(deltaX, deltaY) > 6) {
+        didDragRef.current = true
         suppressClickRef.current = true
         setDragOffset({ x: deltaX, y: deltaY })
       }
@@ -115,6 +118,7 @@ export function SchedulerGrid({
       setDragOffset(null)
       setDragOverDate(null)
       suppressClickRef.current = false
+      didDragRef.current = false
     }
 
     window.addEventListener("pointermove", handlePointerMove)
@@ -144,7 +148,7 @@ export function SchedulerGrid({
       <div
         key={iso}
         data-drop-date={iso}
-        className={`flex flex-col rounded-xl border bg-card transition-colors ${dragOverDate === iso ? "border-primary shadow-sm" : "border-border"}`}
+        className={`flex flex-col rounded-xl border bg-card transition-colors ${dragOverDate === iso ? "border-primary bg-primary/5 shadow-sm" : "border-border"}`}
       >
         <div className="flex items-center justify-between rounded-t-xl bg-secondary px-3 py-2 text-secondary-foreground">
           <div>
@@ -184,7 +188,7 @@ export function SchedulerGrid({
                   onPointerDown={(event) => handlePointerDown(event, shift)}
                   className={`group relative rounded-lg border-l-4 bg-secondary/60 p-2 text-left shadow-sm touch-none ${
                     conflictIds.has(shift.id) ? "ring-1 ring-destructive/40" : ""
-                  } ${draggedShiftId === shift.id ? "opacity-70" : ""}`}
+                  } ${draggedShiftId === shift.id ? "opacity-70 ring-2 ring-primary/50" : ""}`}
                   style={{
                     borderLeftColor: color,
                     transform: draggedShiftId === shift.id && dragOffset ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : undefined,
@@ -193,8 +197,9 @@ export function SchedulerGrid({
                 >
                   <button
                     onClick={(event) => {
+                      event.preventDefault()
                       event.stopPropagation()
-                      if (!suppressClickRef.current) {
+                      if (!suppressClickRef.current && !didDragRef.current) {
                         onEditShift(shift)
                       }
                     }}
@@ -215,8 +220,11 @@ export function SchedulerGrid({
                   </button>
                   <button
                     onClick={(event) => {
+                      event.preventDefault()
                       event.stopPropagation()
-                      onDuplicateShift(shift)
+                      if (!suppressClickRef.current && !didDragRef.current) {
+                        onDuplicateShift(shift)
+                      }
                     }}
                     aria-label="Duplicar turno"
                     className="absolute right-1 top-1 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-foreground/10 hover:text-foreground group-hover:opacity-100"
