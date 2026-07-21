@@ -36,6 +36,7 @@ export default function Page() {
 
   const weekDays = useMemo(() => getWeekDays(weekStart), [weekStart])
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart])
+  const selectedEmployee = employees.find((employee) => employee.id === selectedEmployeeId)
   const filteredShifts = useMemo(() => {
     if (selectedEmployeeId === "all") return shifts
     return shifts.filter((shift) => shift.employee_id === selectedEmployeeId)
@@ -211,7 +212,7 @@ export default function Page() {
             <label className="text-sm text-muted-foreground">Filtrar por funcionário</label>
             <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
               <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Todos" />
+                <span>{selectedEmployee?.name ?? "Todos os funcionários"}</span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os funcionários</SelectItem>
