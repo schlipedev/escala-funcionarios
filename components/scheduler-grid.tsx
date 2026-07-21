@@ -54,7 +54,7 @@ export function SchedulerGrid({
       .sort((a, b) => a.start_time.localeCompare(b.start_time))
   }
 
-  function renderDayCard(day: Date, index: number, iso: string, dayShifts: Shift[], isToday: boolean) {
+  function renderDayCard(day: Date, index: number, iso: string, dayShifts: Shift[]) {
     const conflictIds = new Set<string>()
     dayShifts.forEach((shift, shiftIndex) => {
       dayShifts.slice(shiftIndex + 1).forEach((candidate) => {
@@ -67,17 +67,8 @@ export function SchedulerGrid({
     const hasConflicts = conflictIds.size > 0
     const summaryLabel = `${dayShifts.length} turno${dayShifts.length === 1 ? "" : "s"}${hasConflicts ? ` • ${conflictIds.size} conflito${conflictIds.size === 1 ? "" : "s"}` : ""}`
     return (
-      <div
-        key={iso}
-        className={`flex flex-col rounded-xl border bg-card ${
-          isToday ? "border-primary shadow-sm" : "border-border"
-        }`}
-      >
-        <div
-          className={`flex items-center justify-between rounded-t-xl px-3 py-2 ${
-            isToday ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
-          }`}
-        >
+      <div key={iso} className="flex flex-col rounded-xl border border-border bg-card">
+        <div className="flex items-center justify-between rounded-t-xl bg-secondary px-3 py-2 text-secondary-foreground">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide opacity-80">
               {WEEKDAY_LABELS[index]}
@@ -90,9 +81,7 @@ export function SchedulerGrid({
           <button
             onClick={() => onAddShift(iso)}
             aria-label={`Adicionar turno em ${WEEKDAY_LABELS[index]}`}
-            className={`rounded-md p-2 transition-colors ${
-              isToday ? "hover:bg-primary-foreground/20" : "hover:bg-foreground/10"
-            }`}
+            className="rounded-md p-2 transition-colors hover:bg-foreground/10"
           >
             <Plus className="size-4" />
           </button>
@@ -158,18 +147,29 @@ export function SchedulerGrid({
         {weekDays.map((day, i) => {
           const iso = toISODate(day)
           const dayShifts = shiftsForDay(iso)
-          const isToday = iso === today
-          return renderDayCard(day, i, iso, dayShifts, isToday)
+          return renderDayCard(day, i, iso, dayShifts)
         })}
       </div>
 
-      <div className="hidden gap-3 md:grid md:grid-cols-2 xl:grid-cols-7">
-        {weekDays.map((day, i) => {
-          const iso = toISODate(day)
-          const dayShifts = shiftsForDay(iso)
-          const isToday = iso === today
-          return renderDayCard(day, i, iso, dayShifts, isToday)
-        })}
+      <div className="hidden gap-4 md:block">
+        <div className="grid gap-4 lg:grid-cols-2">
+          {[weekDays.slice(0, 7), weekDays.slice(7)].map((weekGroup, groupIndex) => (
+            <div key={groupIndex} className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">
+                  {groupIndex === 0 ? "Esta semana" : "Próxima semana"}
+                </p>
+              </div>
+              <div className="grid gap-3 xl:grid-cols-7">
+                {weekGroup.map((day, i) => {
+                  const iso = toISODate(day)
+                  const dayShifts = shiftsForDay(iso)
+                  return renderDayCard(day, i, iso, dayShifts)
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
