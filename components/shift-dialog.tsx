@@ -144,15 +144,15 @@ export function ShiftDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="max-h-[90vh] overflow-y-auto p-4 sm:max-w-md">
+        <DialogHeader className="px-1">
           <DialogTitle>{shift ? "Editar turno" : "Novo turno"}</DialogTitle>
           <DialogDescription>
             {shift ? "Atualize os detalhes do turno." : "Adicione um turno à escala."}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-2">
+        <div className="grid gap-3 py-1 sm:gap-4">
           <div className="grid gap-2">
             <Label htmlFor="employee">Funcionário</Label>
             <Select value={employeeId} onValueChange={(value) => {
@@ -218,7 +218,7 @@ export function ShiftDialog({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="start">Início</Label>
               <Input id="start" type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
@@ -252,7 +252,7 @@ export function ShiftDialog({
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </div>
 
-        <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+        <DialogFooter className="flex-col-reverse gap-2 px-1 sm:flex-row sm:justify-between">
           {shift && onDelete ? (
             <Button variant="destructive" onClick={handleDelete} disabled={saving} className="sm:mr-auto">
               Excluir
