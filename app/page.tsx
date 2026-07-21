@@ -26,6 +26,7 @@ export default function Page() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [shifts, setShifts] = useState<Shift[]>([])
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("all")
+  const [selectedLocationId, setSelectedLocationId] = useState<string>("all")
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -38,9 +39,15 @@ export default function Page() {
   const weekEnd = useMemo(() => addDays(weekStart, 6), [weekStart])
   const selectedEmployee = employees.find((employee) => employee.id === selectedEmployeeId)
   const filteredShifts = useMemo(() => {
-    if (selectedEmployeeId === "all") return shifts
-    return shifts.filter((shift) => shift.employee_id === selectedEmployeeId)
-  }, [selectedEmployeeId, shifts])
+    let result = shifts
+    if (selectedEmployeeId !== "all") {
+      result = result.filter((shift) => shift.employee_id === selectedEmployeeId)
+    }
+    if (selectedLocationId !== "all") {
+      result = result.filter((shift) => shift.location_id === selectedLocationId)
+    }
+    return result
+  }, [selectedEmployeeId, selectedLocationId, shifts])
 
   const loadData = useCallback(async () => {
     if (!isSupabaseConfigured) {
@@ -209,7 +216,7 @@ export default function Page() {
             </Button>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <label className="text-sm text-muted-foreground">Filtrar por funcionário</label>
+            <label className="text-sm text-muted-foreground">Filtrar</label>
             <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
               <SelectTrigger className="w-[220px]">
                 <span>{selectedEmployee?.name ?? "Todos os funcionários"}</span>
@@ -219,6 +226,19 @@ export default function Page() {
                 {employees.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id}>
                     {employee.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedLocationId} onValueChange={setSelectedLocationId}>
+              <SelectTrigger className="w-[200px]">
+                <span>{selectedLocationId === "all" ? "Todos os locais" : locations.find((item) => item.id === selectedLocationId)?.name ?? "Local"}</span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os locais</SelectItem>
+                {locations.map((location) => (
+                  <SelectItem key={location.id} value={location.id}>
+                    {location.name}
                   </SelectItem>
                 ))}
               </SelectContent>

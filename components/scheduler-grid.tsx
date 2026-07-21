@@ -27,6 +27,27 @@ export function SchedulerGrid({
   const employeeById = new Map(employees.map((e) => [e.id, e]))
   const today = toISODate(new Date())
 
+  function toMinutes(time: string): number {
+    const [hours, minutes] = time.split(":").map(Number)
+    return hours * 60 + minutes
+  }
+
+  function shiftsOverlap(a: Shift, b: Shift): boolean {
+    if (a.employee_id !== b.employee_id) return false
+    const aStart = toMinutes(a.start_time)
+    const aEnd = toMinutes(a.end_time)
+    const bStart = toMinutes(b.start_time)
+    const bEnd = toMinutes(b.end_time)
+
+    const aDuration = aEnd >= aStart ? aEnd - aStart : 24 * 60 - aStart + aEnd
+    const bDuration = bEnd >= bStart ? bEnd - bStart : 24 * 60 - bStart + bEnd
+
+    const aEndAdjusted = aStart + aDuration
+    const bEndAdjusted = bStart + bDuration
+
+    return aStart < bEndAdjusted && bStart < aEndAdjusted
+  }
+
   function shiftsForDay(iso: string): Shift[] {
     return shifts
       .filter((s) => s.shift_date === iso)
@@ -34,6 +55,17 @@ export function SchedulerGrid({
   }
 
   function renderDayCard(day: Date, index: number, iso: string, dayShifts: Shift[], isToday: boolean) {
+    const conflictIds = new Set<string>()
+    dayShifts.forEach((shift, shiftIndex) => {
+      dayShifts.slice(shiftIndex + 1).forEach((candidate) => {
+        if (shiftsOverlap(shift, candidate)) {
+          conflictIds.add(shift.id)
+          conflictIds.add(candidate.id)
+        }
+      })
+    })
+    const hasConflicts = conflictIds.size > 0
+    const summaryLabel = `${dayShifts.length} turno${dayShifts.length === 1 ? "" : "s"}${hasConflicts ? ` • ${conflictIds.size} conflito${conflictIds.size === 1 ? "" : "s"}` : ""}`
     return (
       <div
         key={iso}
@@ -51,6 +83,9 @@ export function SchedulerGrid({
               {WEEKDAY_LABELS[index]}
             </p>
             <p className="text-lg font-semibold leading-tight">{formatDayNumber(day)}</p>
+            <p className={`text-[11px] ${hasConflicts ? "text-destructive" : "text-muted-foreground"}`}>
+              {summaryLabel}
+            </p>
           </div>
           <button
             onClick={() => onAddShift(iso)}
@@ -79,7 +114,9 @@ export function SchedulerGrid({
               return (
                 <div
                   key={shift.id}
-                  className="group relative rounded-lg border-l-4 bg-secondary/60 p-2 text-left shadow-sm"
+                  className={`group relative rounded-lg border-l-4 bg-secondary/60 p-2 text-left shadow-sm ${
+                    conflictIds.has(shift.id) ? "ring-1 ring-destructive/40" : ""
+                  }`}
                   style={{ borderLeftColor: color }}
                 >
                   <button
