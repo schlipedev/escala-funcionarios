@@ -46,8 +46,8 @@ export function ManageDialog(props: ManageDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Gerenciar</DialogTitle>
-          <DialogDescription>Cadastre locais e funcionários da escala.</DialogDescription>
+          <DialogTitle>Gestão</DialogTitle>
+          <DialogDescription></DialogDescription>
         </DialogHeader>
 
         <div className="flex gap-1 rounded-lg bg-muted p-1">
