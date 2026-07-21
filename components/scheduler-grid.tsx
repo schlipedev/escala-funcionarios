@@ -39,6 +39,7 @@ export function SchedulerGrid({
   const suppressClickRef = useRef(false)
   const didDragRef = useRef(false)
   const dragResetTimeoutRef = useRef<number | null>(null)
+  const dragContainerRef = useRef<HTMLDivElement | null>(null)
 
   function toMinutes(time: string): number {
     const [hours, minutes] = time.split(":").map(Number)
@@ -75,9 +76,10 @@ export function SchedulerGrid({
     setDragOverDate(nextDate)
   }
 
-  function handlePointerDown(event: React.PointerEvent<HTMLDivElement>, shift: Shift) {
+  function handleMouseDown(event: React.MouseEvent<HTMLDivElement>, shift: Shift) {
     if (event.button !== 0) return
 
+    event.preventDefault()
     dragStartRef.current = { x: event.clientX, y: event.clientY }
     draggedShiftRef.current = shift
     dragOverDateRef.current = null
@@ -93,7 +95,7 @@ export function SchedulerGrid({
   useEffect(() => {
     if (!draggedShiftId) return
 
-    const handlePointerMove = (event: PointerEvent) => {
+    const handleMouseMove = (event: MouseEvent) => {
       if (!dragStartRef.current || !draggedShiftRef.current) return
 
       const deltaX = event.clientX - dragStartRef.current.x
@@ -106,7 +108,7 @@ export function SchedulerGrid({
       updateDragOver(event.clientX, event.clientY)
     }
 
-    const handlePointerUp = () => {
+    const handleMouseUp = () => {
       const shift = draggedShiftRef.current
       const targetDate = dragOverDateRef.current
 
@@ -132,14 +134,14 @@ export function SchedulerGrid({
       }, 0)
     }
 
-    window.addEventListener("pointermove", handlePointerMove)
-    window.addEventListener("pointerup", handlePointerUp)
-    window.addEventListener("pointercancel", handlePointerUp)
+    document.body.style.userSelect = "none"
+    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", handleMouseUp)
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove)
-      window.removeEventListener("pointerup", handlePointerUp)
-      window.removeEventListener("pointercancel", handlePointerUp)
+      document.body.style.userSelect = ""
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUp)
     }
   }, [draggedShiftId, onMoveShift])
 
@@ -159,7 +161,7 @@ export function SchedulerGrid({
       <div
         key={iso}
         data-drop-date={iso}
-        className={`flex flex-col rounded-xl border bg-card transition-colors ${dragOverDate === iso ? "border-primary bg-primary/5 shadow-sm" : "border-border"}`}
+        className={`flex flex-col rounded-xl border bg-card transition-all ${dragOverDate === iso ? "border-primary bg-primary/8 shadow-md ring-2 ring-primary/20" : "border-border"}`}
       >
         <div className="flex items-center justify-between rounded-t-xl bg-secondary px-3 py-2 text-secondary-foreground">
           <div>
@@ -196,16 +198,16 @@ export function SchedulerGrid({
               return (
                 <div
                   key={shift.id}
-                  onPointerDown={(event) => handlePointerDown(event, shift)}
+                  onMouseDown={(event) => handleMouseDown(event, shift)}
                   onClickCapture={(event) => {
                     if (suppressClickRef.current || didDragRef.current) {
                       event.preventDefault()
                       event.stopPropagation()
                     }
                   }}
-                  className={`group relative rounded-lg border-l-4 bg-secondary/60 p-2 text-left shadow-sm touch-none ${
+                  className={`group relative rounded-lg border-l-4 bg-secondary/60 p-2 text-left shadow-sm touch-none cursor-grab ${
                     conflictIds.has(shift.id) ? "ring-1 ring-destructive/40" : ""
-                  } ${draggedShiftId === shift.id ? "opacity-70 ring-2 ring-primary/50" : ""}`}
+                  } ${draggedShiftId === shift.id ? "opacity-80 ring-2 ring-primary/60 shadow-lg" : ""}`}
                   style={{
                     borderLeftColor: color,
                     transform: draggedShiftId === shift.id && dragOffset ? `translate(${dragOffset.x}px, ${dragOffset.y}px)` : undefined,
@@ -260,7 +262,7 @@ export function SchedulerGrid({
   const mobileWeekDays = weekDays.slice(0, 7)
 
   return (
-    <div className="overflow-hidden">
+    <div className="overflow-hidden" ref={dragContainerRef}>
       {dragging ? (
         <div className="pointer-events-none fixed inset-0 z-40" />
       ) : null}
